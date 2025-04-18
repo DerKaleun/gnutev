@@ -9,8 +9,8 @@ def parse_any_date(x: str | float | int | dt.date) -> dt.date:
     if isinstance(x, dt.date):
         return x
     elif isinstance(x, str):
-        if '.' in x:  # prob. "2022-08-15"
-            d, m, y = x.split(".")
+        if '-' in x:  # prob. "2022-08-15"
+            y, m, d = x.split("-")
             return dt.date(int(y), int(m), int(d))
         elif m := re.match(r"(\d\d)/(\d\d)/(\d\d)", x):  # MM/DD/YY
             return dt.date(2000 + int(m.group(3)), int(m.group(1)), int(m.group(2)))
