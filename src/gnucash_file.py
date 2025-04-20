@@ -37,9 +37,9 @@ class BookingsCSVFile:
                 full_account_name=row[9],
                 account_name=row[10],
                 amount_with_sym=row[11],
-                amount_num=Decimal(row[12].replace(",", "")),
+                amount_num=Decimal(row[12].replace(".", "").replace(",", ".")), # European decimal notation with ',' as decimal separator.
                 value_with_sym=row[13],
-                value_num=Decimal(row[14].replace(",", "")),
+                value_num=Decimal(row[14].replace(".", "").replace(",", ".")),  # European decimal notation with ',' as decimal separator.
                 reconcile=row[15],
                 reconcile_date=parse_any_date(row[16]) if row[16].strip() else None,
                 rate_price=row[17],
@@ -124,3 +124,4 @@ class Account:
     hidden: str  # Indicates if the account is hidden.
     tax_info: str  # Tax information related to the account.
     placeholder: str  # Indicates if the account is a placeholder.
+

@@ -57,7 +57,67 @@ def convert_gnucash_to_datev(gnucash_accounts_export_fd: Iterable[str],
             debit_splits = [b for b in splits if b.amount_num < 0]
             credit_splits = [b for b in splits if b.amount_num > 0]
 
+            if len(debit_splits) < 1 or len(credit_splits) < 1:     # Skip single split transactions, like "Entgeldabschlüsse"
+                continue
+            
             if len(debit_splits) > 1 and len(credit_splits) > 1:
+
+                if len(debit_splits) == len(credit_splits):
+                    allocation:int = 0
+                    for i in range(0, len(debit_splits)):
+                        for j in range(0, len(credit_splits)):
+                            print(i," ",j)
+                            if debit_splits[i].amount_num == -credit_splits[j].amount_num and debit_splits[i].notes == credit_splits[j].notes:
+                                allocation += 1
+                                print(allocation," ",debit_splits[i].amount_num, " ", credit_splits[j].amount_num)
+                                debit_splits[i].transaction_id = transaction_id+str(i)+str(j)
+                                credit_splits[j].transaction_id = transaction_id+str(i)+str(j)
+                                filtered_bookings_list = list(filtered_bookings)
+                                filtered_bookings_list.append(debit_splits[i])
+                                filtered_bookings_list.append(credit_splits[j])
+                                filtered_bookings = tuple(filtered_bookings_list)
+                    if allocation < len(debit_splits):
+                        logging.error(f"Transaction: {debit_splits[0].description}")
+                        logging.error(f"  - Debit splits:")
+                        for b in debit_splits:
+                            logging.error(f"    - {b.amount_with_sym} in {accounts_file.get_account_by_full_name(b.full_account_name).account_code} \"{b.full_account_name}\"")
+                        logging.error(f"  - Credit splits:")
+                        for b in credit_splits:
+                            logging.error(f"    - {b.amount_with_sym} in {accounts_file.get_account_by_full_name(b.full_account_name).account_code} \"{b.full_account_name}\"")
+                        raise RuntimeError("There is more than one split for both, debit and credit, which could\n"
+                                        "not be assigned to each other by amount and note and converted into independent\n"
+                                        "transactions.\n"
+                                        "This indicates that the supplied booking CSV export doesn't match the\n")
+        
+        for transaction_id, splits in groupby(filtered_bookings, key=lambda b: b.transaction_id):
+            splits: List[gc.Booking] = list(splits)
+
+            debit_splits = [b for b in splits if b.amount_num < 0]
+            credit_splits = [b for b in splits if b.amount_num > 0]
+
+            if len(debit_splits) < 1 or len(credit_splits) < 1:     # Skip single split transactions, like "Entgeldabschlüsse"
+                continue
+            
+            if len(debit_splits) > 1 and len(credit_splits) > 1:
+
+#                if len(debit_splits) == len(credit_splits):
+#                    allocation:int = 0
+#                    for i in range(0, len(debit_splits)):
+#                        for j in range(0, len(credit_splits)):
+#                            print(i," ",j)
+#                            if debit_splits[i].amount_num == -credit_splits[j].amount_num and debit_splits[i].notes == credit_splits[j].notes:
+#                                allocation += 1
+#                                print(allocation," ",debit_splits[i].amount_num, " ", credit_splits[j].amount_num)
+#                                if allocation == 1:
+#                                    bookings[0], contra_booking = debit_splits[i], credit_splits[j]
+#                                else:
+#                                    debit_splits[i].transaction_id = transaction_id+str(i)+str(j)
+#                                    credit_splits[j].transaction_id = transaction_id+str(i)+str(j)
+#                                    filtered_bookings_list = list(filtered_bookings)
+#                                    filtered_bookings_list.append(debit_splits[i])
+#                                    filtered_bookings_list.append(credit_splits[j])
+#                                    filtered_bookings = tuple(filtered_bookings_list)
+#                else:
                 logging.error(f"Transaction: {debit_splits[0].description}")
                 logging.error(f"  - Debit splits:")
                 for b in debit_splits:
@@ -66,13 +126,13 @@ def convert_gnucash_to_datev(gnucash_accounts_export_fd: Iterable[str],
                 for b in credit_splits:
                     logging.error(f"    - {b.amount_with_sym} in {accounts_file.get_account_by_full_name(b.full_account_name).account_code} \"{b.full_account_name}\"")
                 raise RuntimeError("There is more than one split for both, debit and credit. Thus there's an\n"
-                                   "ambiguity in how to convert these splits into multiple bookings (which has\n"
-                                   "to be done because DATEV doesn't support split transactions). This ambiguity\n"
-                                   "can (at least to my knowledge) not easily be resolved. Consider creating\n"
-                                   "separate split transactions in GnuCash, such that there's either exactly\n"
-                                   "one debit split or exactly one credit split.\n"
-                                   "See above for details about the transaction.")
-
+                                "ambiguity in how to convert these splits into multiple bookings (which has\n"
+                                "to be done because DATEV doesn't support split transactions). This ambiguity\n"
+                                "can (at least to my knowledge) not easily be resolved. Consider creating\n"
+                                "separate split transactions in GnuCash, such that there's either exactly\n"
+                                "one debit split or exactly one credit split.\n"
+                                "See above for details about the transaction.")
+#            else:
             if len(debit_splits) > 1:
                 bookings, contra_booking = debit_splits, credit_splits[0],
             else:
@@ -96,7 +156,7 @@ def convert_gnucash_to_datev(gnucash_accounts_export_fd: Iterable[str],
                 datev_file.add_booking(
                     revenue=abs(booking.amount_num),
                     document_date=booking.date,
-                    posting_text=truncate_string(booking.description, 60),
+                    posting_text=truncate_string(booking.description + " " + booking.memo, 60),
                     account=int(account.account_code),
                     contra_account_without_bu_key=int(contra_account.account_code),
                     debit_credit_indicator='S' if booking.amount_num > 0 else 'H',  # S = debit, H = credit

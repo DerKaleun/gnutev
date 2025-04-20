@@ -24,7 +24,7 @@ def parse_any_date(x: str | float | int | dt.date) -> dt.date:
 
 
 def yearly_split(end_date: dt.date, start_date: dt.date) -> Generator[Tuple[dt.date, dt.date], None, None]:
-    if not start_date < end_date:
+    if not start_date <= end_date:
         raise ValueError(f"Start date must be before end date: start={start_date.isoformat()} is not "
                          f"before end={end_date.isoformat()}")
 
