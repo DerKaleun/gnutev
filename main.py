@@ -108,8 +108,8 @@ def convert_gnucash_to_datev(gnucash_accounts_export_fd: Iterable[str],
 
                 continue
                 
-            #    debit_splits = []
-            #    credit_splits = []
+#                debit_splits = []
+#                credit_splits = []
 
             # Try to resolve remaining DATEV incompatibility.
             if len(debit_splits) > 1 and len(credit_splits) > 1:
@@ -117,6 +117,7 @@ def convert_gnucash_to_datev(gnucash_accounts_export_fd: Iterable[str],
                 debit_accounts = {account.account_name for account in debit_splits}
                 credit_accounts = {account.account_name for account in credit_splits}
                 common_accounts = list(debit_accounts & credit_accounts)
+                common_accounts_set = debit_accounts & credit_accounts
 
                 debit_splits_help = copy.deepcopy(debit_splits)
                 credit_splits_help = copy.deepcopy(credit_splits)
@@ -133,6 +134,9 @@ def convert_gnucash_to_datev(gnucash_accounts_export_fd: Iterable[str],
                 debit_splits_help = [debit_split for debit_split in debit_splits_help if debit_split.amount_num != 0]
                 credit_splits_help = [credit_split for credit_split in credit_splits_help if credit_split.amount_num != 0]
 
+                debit_splits_help = [debit_split for debit_split in debit_splits_help if debit_split.account_name not in common_accounts_set]
+                credit_splits_help = [credit_split for credit_split in credit_splits_help if credit_split.account_name not in common_accounts_set]
+                
                 # Try to determine the contra account from the remaining account(s).
                 if not((len(debit_splits_help) > 1 or len(credit_splits_help) > 1) or (len(debit_splits_help) == 0 and len(credit_splits_help) == 0)):
                     contra_bookings: list[gc.Booking] = []
@@ -163,7 +167,7 @@ def convert_gnucash_to_datev(gnucash_accounts_export_fd: Iterable[str],
                             if debit_splits[i] != contra_bookings[0]:
                                 debit_splits[i].transaction_id = transaction_id+"_"+str(i)
                                 contra_booking_help.transaction_id = transaction_id+"_"+str(i)
-                                contra_booking_help.amount_num = -credit_splits[i].amount_num
+                                contra_booking_help.amount_num = -debit_splits[i].amount_num
                                 datevCompatible_bookings.append(copy.deepcopy(contra_booking_help))
                                 datevCompatible_bookings.append(copy.deepcopy(debit_splits[i]))
                                 debit_splits[i].amount_num = 0
@@ -304,14 +308,12 @@ if __name__ == '__main__':
 
     parser.add_argument("--financial-year-start", default=None, help="Start of the financial year in YYYY-MM-DD. If omitted, Jan 1 is used for each year")
     parser.add_argument("--output-folder", default=os.path.realpath("."), help="Path to the output folder to place DATEV files in. Default: current folder")
-    parser.add_argument("--title", default=None, help="Title of the exporte                credit
-d DATEV files")
+    parser.add_argument("--title", default=None, help="Title of the exported DATEV files")
 
     args = parser.parse_args(sys.argv[1:])
 
     with open(getattr(args, 'accounts-csv-export')) as accountsfd:
-        with open(getattr(args, 'transactions-csv-export')) as bookingsfd:                credit
-
+        with open(getattr(args, 'transactions-csv-export')) as bookingsfd:
             convert_gnucash_to_datev(
                 gnucash_accounts_export_fd=accountsfd,
                 gnucash_bookings_export_fd=bookingsfd,
