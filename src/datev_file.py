@@ -24,9 +24,9 @@ class BookingsCSVFile:
             raise ValueError("The start_date and end_date fields must be within the same year.")
 
         self.header = [  # see: https://developer.datev.de/datev/platform/en/dtvf/formate/header
-            'EXTF', 700, 21, "Buchungsstapel", 12, datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3], '', "RE",
+            'EXTF', 700, 21, "Buchungsstapel", 13, datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3], '', "RE",
             "MaxMuster", "", 1001, 1, datev_date(financial_year_start), 4, datev_date(start_date),
-            datev_date(end_date), title or "Buchungen", author_initials, 1, '', '', "EUR", '', '',
+            datev_date(end_date), title or "Buchungen", author_initials, 1, 0, 0, "EUR", '', '',
             '', '', skr_number, '', '', "", ""
         ]
         self.title_row = [  # see: https://developer.datev.de/datev/platform/en/dtvf/einstieg
